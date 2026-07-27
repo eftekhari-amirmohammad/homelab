@@ -1,0 +1,14 @@
+<network>
+  <name>homelab</name>
+  <uuid>f2aab88d-8f97-4d08-87dc-ab71f79c8343</uuid>
+  <forward mode='nat'/>
+  <bridge name='virbr1' stp='on' delay='0'/>
+  <mac address='52:54:00:ce:32:3a'/>
+  <domain name='homelab'/>
+  <ip address='192.168.100.1' netmask='255.255.255.0'>
+    <dhcp>
+      <range start='192.168.100.128' end='192.168.100.254'/>
+    </dhcp>
+  </ip>
+</network>
+
