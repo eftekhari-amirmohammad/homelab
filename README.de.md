@@ -83,6 +83,9 @@ Aktuelle Umsetzung — ein flaches, per NAT angebundenes virtuelles Netzwerk:
 | `LAB-CL01` | Domänenclient | Windows 10 | DHCP | 4 GB | 2 |
 | `LAB-SEC01` | Sicherheitsarbeitsplatz | Parrot Security 7.2 | 192.168.100.50 | 3 GB | 4 |
 
+Um die 16 GB Arbeitsspeicher des Hosts nicht zu überschreiten, laufen nie mehr als drei
+virtuelle Maschinen gleichzeitig.
+
 ---
 
 ## 5. Netzwerk- und IP-Konzept
@@ -108,7 +111,7 @@ Ausführliche Details und Entwurfsentscheidungen: [`docs/ip-plan/`](docs/ip-plan
 
 | # | Phase | Schwerpunkt | Status |
 | --- | --- | --- | --- |
-| 0 | [Grundlagen](docs/architecture/) | Repository, IP-Konzept, Namenskonvention | 🟨 In Arbeit |
+| 0 | [Grundlagen](docs/architecture/) | Repository, IP-Konzept, Namenskonvention | ✅ Abgeschlossen |
 | 1 | [Netzwerkplanung](phases/01-network-design/) | Topologie & Adressierung in Cisco Packet Tracer | ⬜ Geplant |
 | 2 | [Virtuelle Infrastruktur](phases/02-virtual-infrastructure/) | libvirt-Netzwerk, Bereitstellung der VMs | ⬜ Geplant |
 | 3 | [Windows Server](phases/03-windows-server/) | Active Directory, DNS, DHCP, OU-Struktur | ⬜ Geplant |
@@ -168,6 +171,24 @@ Kubernetes, Docker Swarm, Terraform, Ansible, Grafana, Prometheus, ELK Stack,
 Jenkins, GitLab, SIEM, Cloud-Infrastruktur, Hochverfügbarkeit.
 
 Diese Themen sind als mögliche Erweiterungsphasen dokumentiert.
+
+---
+
+## 11. Arbeitsweise
+
+Die gesamte Infrastruktur dieses Labors wurde von mir auf eigener Hardware geplant,
+installiert, konfiguriert und überprüft. Jeder Screenshot dokumentiert ein System, das ich
+selbst aufgebaut und getestet habe, und jedes unter *Lessons Learned* aufgeführte Problem
+ist eines, auf das ich gestoßen bin und das ich selbst gelöst habe.
+
+KI-Assistenten wurden bewusst als **Lern- und Dokumentationswerkzeug** eingesetzt — um meine
+Architekturentscheidungen kritisch zu hinterfragen, diese Dokumentation strukturiert und
+konsistent zu halten und die englische sowie deutsche Formulierung zu verbessern. Sie haben
+die praktische Arbeit nicht ersetzt: Keine Konfiguration in diesem Repository wurde
+übernommen, ohne sie selbst durchzuführen, zu testen und zu verstehen.
+
+Den effektiven und transparenten Einsatz moderner Werkzeuge betrachte ich als Teil
+professioneller IT-Arbeit — deshalb wird er hier ausdrücklich benannt.
 
 ---
 

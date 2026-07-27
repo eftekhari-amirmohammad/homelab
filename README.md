@@ -82,6 +82,9 @@ Current implementation — a single flat, NAT-connected virtual network:
 | `LAB-CL01` | Domain Client | Windows 10 | DHCP | 4 GB | 2 |
 | `LAB-SEC01` | Security Workstation | Parrot Security 7.2 | 192.168.100.50 | 3 GB | 4 |
 
+To stay within the host's 16 GB of memory, no more than three virtual machines are
+running at the same time.
+
 ---
 
 ## 5. Network & IP Concept
@@ -107,7 +110,7 @@ Full details and design decisions: [`docs/ip-plan/`](docs/ip-plan/) and
 
 | # | Phase | Focus | Status |
 | --- | --- | --- | --- |
-| 0 | [Foundation](docs/architecture/) | Repository, IP plan, naming, decisions | 🟨 In progress |
+| 0 | [Foundation](docs/architecture/) | Repository, IP plan, naming, decisions | ✅ Completed |
 | 1 | [Network Design](phases/01-network-design/) | Topology & addressing in Cisco Packet Tracer | ⬜ Planned |
 | 2 | [Virtual Infrastructure](phases/02-virtual-infrastructure/) | libvirt networking, VM provisioning | ⬜ Planned |
 | 3 | [Windows Server](phases/03-windows-server/) | Active Directory, DNS, DHCP, OU structure | ⬜ Planned |
@@ -167,6 +170,22 @@ Kubernetes, Docker Swarm, Terraform, Ansible, Grafana, Prometheus, ELK Stack,
 Jenkins, GitLab, SIEM, cloud infrastructure, high availability.
 
 These are documented as potential expansion phases.
+
+---
+
+## 11. Working Method
+
+The entire infrastructure in this lab was planned, installed, configured and verified by me
+on my own hardware. Every screenshot documents a system I built and tested myself, and every
+problem listed under *Lessons Learned* is one I ran into and solved.
+
+AI assistants were used deliberately as a **learning and documentation tool** — to challenge
+my architecture decisions, to keep this documentation structured and consistent, and to refine
+the English and German wording. They did not replace the hands-on work: no configuration in
+this repository was applied without performing, testing and understanding it myself.
+
+I regard the effective and transparent use of modern tools as part of professional IT work,
+which is why it is stated here explicitly.
 
 ---
 
