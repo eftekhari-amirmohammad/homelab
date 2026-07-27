@@ -78,10 +78,10 @@ Aktuelle Umsetzung — ein flaches, per NAT angebundenes virtuelles Netzwerk:
 
 | Hostname | Rolle | Betriebssystem | IP-Adresse | RAM | vCPU |
 | --- | --- | --- | --- | --- | --- |
-| `LAB-DC01` | Domänencontroller, DNS, DHCP | Windows Server 2019 | 192.168.100.10 | 4 GB | 2 |
+| `LAB-DC01` | Domänencontroller, DNS, DHCP | Windows Server 2019 | 192.168.100.10 | 4 GB | 4 |
 | `LAB-WEB01` | Web- & SSH-Server | CentOS Stream 9 | 192.168.100.20 | 2 GB | 2 |
 | `LAB-CL01` | Domänenclient | Windows 10 | DHCP | 4 GB | 2 |
-| `LAB-SEC01` | Sicherheitsarbeitsplatz | Parrot Security 7.2 | 192.168.100.50 | 3 GB | 2 |
+| `LAB-SEC01` | Sicherheitsarbeitsplatz | Parrot Security 7.2 | 192.168.100.50 | 3 GB | 4 |
 
 ---
 

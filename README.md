@@ -77,10 +77,10 @@ Current implementation — a single flat, NAT-connected virtual network:
 
 | Hostname | Role | Operating System | IP Address | RAM | vCPU |
 | --- | --- | --- | --- | --- | --- |
-| `LAB-DC01` | Domain Controller, DNS, DHCP | Windows Server 2019 | 192.168.100.10 | 4 GB | 2 |
+| `LAB-DC01` | Domain Controller, DNS, DHCP | Windows Server 2019 | 192.168.100.10 | 4 GB | 4 |
 | `LAB-WEB01` | Web & SSH Server | CentOS Stream 9 | 192.168.100.20 | 2 GB | 2 |
 | `LAB-CL01` | Domain Client | Windows 10 | DHCP | 4 GB | 2 |
-| `LAB-SEC01` | Security Workstation | Parrot Security 7.2 | 192.168.100.50 | 3 GB | 2 |
+| `LAB-SEC01` | Security Workstation | Parrot Security 7.2 | 192.168.100.50 | 3 GB | 4 |
 
 ---
 
