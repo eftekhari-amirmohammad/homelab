@@ -111,7 +111,7 @@ Full details and design decisions: [`docs/ip-plan/`](docs/ip-plan/) and
 | # | Phase | Focus | Status |
 | --- | --- | --- | --- |
 | 0 | [Foundation](docs/architecture/) | Repository, IP plan, naming, decisions | ✅ Completed |
-| 1 | [Network Design](phases/01-network-design/) | Topology & addressing in Cisco Packet Tracer | ⬜ Planned |
+| 1 | [Network Design](phases/01-network-design/) | Topology & addressing in Cisco Packet Tracer | ✅ Completed |
 | 2 | [Virtual Infrastructure](phases/02-virtual-infrastructure/) | libvirt networking, VM provisioning | ⬜ Planned |
 | 3 | [Windows Server](phases/03-windows-server/) | Active Directory, DNS, DHCP, OU structure | ⬜ Planned |
 | 4 | [Windows Client](phases/04-windows-client/) | Domain join, authentication testing | ⬜ Planned |
