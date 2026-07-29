@@ -113,8 +113,8 @@ Ausführliche Details und Entwurfsentscheidungen: [`docs/ip-plan/`](docs/ip-plan
 | --- | --- | --- | --- |
 | 0 | [Grundlagen](docs/architecture/) | Repository, IP-Konzept, Namenskonvention | ✅ Abgeschlossen |
 | 1 | [Netzwerkplanung](phases/01-network-design/) | Topologie & Adressierung in Cisco Packet Tracer | ✅ Abgeschlossen |
-| 2 | [Virtuelle Infrastruktur](phases/02-virtual-infrastructure/) | libvirt-Netzwerk, Bereitstellung der VMs | ⬜ Geplant |
-| 3 | [Windows Server](phases/03-windows-server/) | Active Directory, DNS, DHCP, OU-Struktur | ⬜ Geplant |
+| 2 | [Virtuelle Infrastruktur](phases/02-virtual-infrastructure/) | libvirt-Netzwerk, Bereitstellung der VMs | ✅ Abgeschlossen |
+| 3 | [Windows Server](phases/03-windows-server/) | Active Directory, DNS, DHCP, OU-Struktur | ✅ Abgeschlossen |
 | 4 | [Windows-Client](phases/04-windows-client/) | Domänenbeitritt, Authentifizierungstests | ⬜ Geplant |
 | 5 | [Linux-Server](phases/05-linux-server/) | SSH, nginx, firewalld, Berechtigungen | ⬜ Geplant |
 | 6 | [Sicherheitstests](phases/06-security-testing/) | Netzwerk-Scans, Diensterkennung | ⬜ Geplant |
