@@ -127,7 +127,7 @@ screenshots/phase-<NN>/<NN>-<step>-<slug>.png
 
 | Example |
 | --- |
-| `screenshots/phase-03/03-01-server-manager-add-roles.png` |
+| `screenshots/phase-03/03-01-server-manager-add-adds-role.png` |
 | `screenshots/phase-03/03-02-adds-installation-complete.png` |
 | `screenshots/phase-04/04-01-domain-join-dialog.png` |
 
@@ -140,7 +140,7 @@ screenshots/phase-<NN>/<NN>-<step>-<slug>.png
 4. 4 to 8 screenshots per phase. More reduces readability.
 5. Always reference with a caption:
 
-   `![ADDS role installation](../../screenshots/phase-03/03-01-server-manager-add-roles.png)`
+   `![ADDS role installation](../../screenshots/phase-03/03-01-server-manager-add-adds-role.png)`
    `*Figure 3.1 — Adding the Active Directory Domain Services role.*`
 
 ---
