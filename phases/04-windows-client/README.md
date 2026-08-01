@@ -313,4 +313,4 @@ Together with Phase 3 this forms a small but complete and verified Windows domai
 
 ## 15. Next Phase
 
-[Phase 5 — Linux Server](../05-linux-server/README.md): SSH hardening, nginx, firewalld, user and permission management on `LAB-WEB01`.
+[Phase 5 — Linux Server](../05-linux-server/): SSH hardening, nginx, firewalld, user and permission management on `LAB-WEB01`.

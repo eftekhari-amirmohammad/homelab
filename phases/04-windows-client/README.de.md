@@ -313,4 +313,4 @@ Zusammen mit Phase 3 ergibt dies eine kleine, aber vollständige und geprüfte W
 
 ## 15. Nächste Phase
 
-[Phase 5 — Linux-Server](../05-linux-server/README.de.md): Härtung von SSH, nginx, firewalld sowie Benutzer- und Berechtigungsverwaltung auf `LAB-WEB01`.
+[Phase 5 — Linux-Server](../05-linux-server/): Härtung von SSH, nginx, firewalld sowie Benutzer- und Berechtigungsverwaltung auf `LAB-WEB01`.
