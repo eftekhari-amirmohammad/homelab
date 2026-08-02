@@ -227,3 +227,31 @@ failure (rejected: time).
 
 **Consequences** — Snapshots are taken offline to avoid large memory-state files on the
 HDD, and are deleted once a phase is verified as working, to reclaim space.
+
+---
+
+## ADR-011
+
+### Forward external DNS queries to public resolvers instead of the NAT gateway
+
+**Context** — ADR-003 configured the domain controller to forward all non-domain queries to
+`192.168.100.1`, the libvirt NAT gateway, which passes them to the host resolver. During
+Phase 5 the CentOS server could not install packages: the mirror names returned a CNAME
+chain without a final A record, so the query succeeded technically but delivered no usable
+address. Queries sent directly to public resolvers returned complete answers for the same
+names.
+
+**Decision** — Configure `8.8.8.8` and `1.1.1.1` as the forwarders of the domain
+controller. The NAT gateway remains the default gateway for all guests; only name
+resolution bypasses the upstream resolver.
+
+**Alternatives considered** — Entering the public resolvers on each guest (rejected: the
+domain controller must stay the only DNS server for the clients, otherwise domain lookups
+fail) and adding static host entries for the mirrors (rejected: not maintainable, and it
+hides the underlying problem).
+
+**Consequences** — Name resolution no longer depends on the behaviour of the upstream
+resolver, and the failure is fixed in exactly one place for all guests. In return the lab
+now requires the two public resolvers to be reachable, and external DNS traffic leaves the
+host unencrypted. In a production environment this decision would be made differently,
+because an internal resolver is normally mandatory for policy and logging reasons.

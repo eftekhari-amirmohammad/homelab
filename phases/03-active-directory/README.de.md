@@ -109,6 +109,8 @@ ipconfig /registerdns
 
 **Die DNS-Weiterleitung** beantwortet jede Anfrage, die nicht zur Domäne gehört. Der DNS-Server kennt nur `corp.homelab.internal`; alles andere geht an `192.168.100.1`, das libvirt-NAT-Gateway. Deshalb benötigen Clients genau einen DNS-Server — den Domänencontroller — und lösen trotzdem Internetnamen auf.
 
+> **Aktualisierung (Phase 5):** Die Weiterleitung wurde später auf die öffentlichen Resolver `8.8.8.8` und `1.1.1.1` umgestellt. Der Provider-Resolver hinter dem NAT-Gateway lieferte für einige externe Namen CNAME-Ketten ohne A-Eintrag zurück, wodurch die Paketinstallation auf dem Linux-Server unmöglich war. Siehe [ADR-011](../../docs/architecture/decisions.md) und [Phase 5](../05-linux-server/).
+
 **`-ReplicationScope Domain`** speichert die Zone in der AD-Datenbank statt in einer Textdatei, sodass ein künftiger zweiter Domänencontroller sie über die Replikation erhält.
 
 ---

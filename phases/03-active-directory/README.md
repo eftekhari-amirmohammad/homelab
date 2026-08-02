@@ -109,6 +109,8 @@ ipconfig /registerdns
 
 **Forwarder** answers every query that does not belong to the domain. The DNS server only knows `corp.homelab.internal`; everything else is passed to `192.168.100.1`, the libvirt NAT gateway. This is why clients need exactly one DNS server — the domain controller — and still resolve internet names.
 
+> **Update (Phase 5):** The forwarder was later changed to the public resolvers `8.8.8.8` and `1.1.1.1`. The provider resolver behind the NAT gateway returned CNAME chains without A records for some external names, which made package installation on the Linux server impossible. See [ADR-011](../../docs/architecture/decisions.md) and [Phase 5](../05-linux-server/).
+
 **`-ReplicationScope Domain`** stores the zone inside the AD database instead of a text file, so a future second domain controller receives it through replication.
 
 ---
