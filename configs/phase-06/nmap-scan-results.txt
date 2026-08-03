@@ -1,0 +1,227 @@
+===============================================================================
+Phase 6 - Security Testing: raw scan results
+Project : homelab (github.com/eftekhari-amirmohammad/homelab)
+Date    : 2026-08-03
+Scanner : LAB-SEC01  192.168.100.50  Parrot Security 7.2  nmap 7.95
+Target  : LAB-WEB01  192.168.100.20  CentOS Stream 9
+Scope   : authorised scan inside an isolated lab network (192.168.100.0/24)
+===============================================================================
+
+
+-------------------------------------------------------------------------------
+[1] HOST DISCOVERY
+-------------------------------------------------------------------------------
+$ sudo nmap -sn 192.168.100.0/24
+
+192.168.100.1    MAC 52:54:00:CE:32:3A (QEMU virtual NIC)   -> libvirt gateway virbr1
+192.168.100.20   MAC 52:54:00:F6:05:C7 (QEMU virtual NIC)   -> LAB-WEB01
+192.168.100.50   (scanner itself)                          -> LAB-SEC01
+
+Nmap done: 256 IP addresses (3 hosts up) scanned in 27.92 seconds
+
+Result: the discovered hosts match the documented IP plan exactly.
+        No undocumented device is present in the network.
+        LAB-DC01 and LAB-CL01 were powered off during this round.
+
+
+-------------------------------------------------------------------------------
+[2] TOP-1000 TCP SYN SCAN
+-------------------------------------------------------------------------------
+$ sudo nmap -sS 192.168.100.20
+
+Not shown: 988 filtered tcp ports (no-response), 10 filtered tcp ports (admin-prohibited)
+PORT   STATE SERVICE
+22/tcp open  ssh
+80/tcp open  http
+
+Result: only the two services justified in Phase 5 are reachable.
+        Port 9090 (cockpit) is no longer exposed.
+
+Note:   ports blocked by firewalld appear as "filtered", not "closed".
+        firewalld's default REJECT answers with ICMP type 3 code 13
+        (administratively prohibited). Only a TCP RST would produce "closed".
+
+
+-------------------------------------------------------------------------------
+[3] CONTROLLED EXPERIMENT - ICMP RATE LIMITING
+-------------------------------------------------------------------------------
+Observation to explain: in scan [2], 988 ports gave no response while only 10
+returned an ICMP admin-prohibited message - although all 998 are treated
+identically by the firewall.
+
+Hypothesis: the Linux kernel rate-limits outgoing ICMP error messages.
+
+Evidence from the target (LAB-WEB01):
+
+$ sysctl net.ipv4.icmp_ratelimit net.ipv4.icmp_ratemask
+net.ipv4.icmp_ratelimit = 1000        # minimum 1000 ms between ICMP errors
+net.ipv4.icmp_ratemask  = 6168        # bits 3,4,11,12 - bit 3 = ICMP type 3
+
+Verification by deliberate reproduction - one packet per second:
+
+$ sudo nmap -sS -p 8000-8004 --scan-delay 1s --reason 192.168.100.20
+
+All five ports: filtered / admin-prohibited / ttl 64 / received arp-response
+
+Result: with a one-second delay, 5 of 5 ports answered instead of a small
+        fraction. The rate limit - not the firewall configuration - explains
+        the two different port states.
+
+Independent quantitative confirmation from scan [4]:
+        135.50 seconds of scanning produced 128 ICMP replies
+        = approximately 1 reply per second = the configured 1000 ms limit.
+
+
+-------------------------------------------------------------------------------
+[4] FULL TCP PORT SCAN (all 65535 ports)
+-------------------------------------------------------------------------------
+$ sudo nmap -sS -p- -T4 --max-retries 1 192.168.100.20
+
+Starting Nmap 7.95 ( https://nmap.org ) at 2026-08-03 11:46 UTC
+Nmap scan report for 192.168.100.20
+Host is up (0.00023s latency).
+Not shown: 65405 filtered tcp ports (no-response), 128 filtered tcp ports (admin-prohibited)
+PORT   STATE SERVICE
+22/tcp open  ssh
+80/tcp open  http
+MAC Address: 52:54:00:F6:05:C7 (QEMU virtual NIC)
+
+Nmap done: 1 IP address (1 host up) scanned in 135.50 seconds
+
+Result: across the complete port range, only ports 22 and 80 are open.
+        This turns "I found nothing else" into "there is nothing else".
+
+
+-------------------------------------------------------------------------------
+[5] SERVICE VERSION DETECTION - BEFORE REMEDIATION
+-------------------------------------------------------------------------------
+$ sudo nmap -sV -p 22,80 192.168.100.20 | grep -E "^22|^80"
+22/tcp open  ssh     OpenSSH 9.9 (protocol 2.0)
+80/tcp open  http    nginx 1.20.1
+
+Cross-check with a second, independent tool:
+
+$ curl -sI http://192.168.100.20 | grep Server
+Server: nginx/1.20.1
+
+Finding: the exact software version is disclosed to any unauthenticated client.
+         An attacker can look up matching CVEs without touching the system.
+         Two independent tools report the same value.
+
+Positive finding: SSH answers "protocol 2.0" only - the insecure SSH protocol
+                  version 1 is not offered.
+
+
+-------------------------------------------------------------------------------
+[6] REMEDIATION - SUPPRESS VERSION DISCLOSURE
+-------------------------------------------------------------------------------
+On LAB-WEB01, as a separate drop-in file instead of editing the vendor config:
+
+$ printf '# Phase 6 - reduce information disclosure\nserver_tokens off;\n' \
+    | sudo tee /etc/nginx/conf.d/security.conf
+$ sudo nginx -t
+nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
+nginx: configuration file /etc/nginx/nginx.conf test is successful
+$ sudo systemctl reload nginx
+
+
+-------------------------------------------------------------------------------
+[7] SERVICE VERSION DETECTION - AFTER REMEDIATION
+-------------------------------------------------------------------------------
+$ sudo nmap -sV -p 22,80 192.168.100.20 | grep -E "^22|^80"
+22/tcp open  ssh     OpenSSH 9.9 (protocol 2.0)
+80/tcp open  http    nginx
+
+$ curl -sI http://192.168.100.20 | grep Server
+Server: nginx
+
+Result: the nginx version number is no longer disclosed.
+        The SSH line is unchanged - it serves as the control group and proves
+        that the change affected only the intended service.
+
+Known limitation: the OpenSSH version cannot be hidden without recompiling the
+        daemon. This is deliberately not done; the effort is out of proportion
+        for the security gain in this environment.
+
+
+-------------------------------------------------------------------------------
+[8] DEFENDER'S VIEW - WHAT THE TARGET RECORDED
+-------------------------------------------------------------------------------
+$ sudo grep "Nmap" /var/log/nginx/access.log | tail -3
+
+192.168.100.50 - - [03/Aug/2026:15:14:45 +0330] "POST /sdk HTTP/1.1" 404 3971 "-" "Mozilla/5.0 (compatible; Nmap Scripting Engine; https://nmap.org/book/nse.html)" "-"
+192.168.100.50 - - [03/Aug/2026:15:14:45 +0330] "GET /HNAP1 HTTP/1.1" 404 3971 "-" "Mozilla/5.0 (compatible; Nmap Scripting Engine; https://nmap.org/book/nse.html)" "-"
+192.168.100.50 - - [03/Aug/2026:15:14:45 +0330] "GET /evox/about HTTP/1.1" 404 3971 "-" "Mozilla/5.0 (compatible; Nmap Scripting Engine; https://nmap.org/book/nse.html)" "-"
+
+Observations:
+  - The scanner identifies itself in the User-Agent header. This is correct
+    behaviour for an authorised scan, but a real attacker can forge that field.
+  - The requested paths reveal the intent: /sdk probes for a VMware vSphere
+    management interface, /HNAP1 for a router administration interface,
+    /evox/about for embedded devices. A normal visitor never requests these.
+  - Detection therefore has to rely on behaviour patterns, not on self-declared
+    identifiers: several 404 responses on unusual paths within one second.
+  - The scanning host also disclosed its own tooling: "curl/8.14.1".
+  - The +0330 timestamps in these lines predate the timezone correction below.
+
+
+-------------------------------------------------------------------------------
+[9] FINDING DISCOVERED DURING THE AUDIT - INCONSISTENT TIME ZONES
+-------------------------------------------------------------------------------
+The nginx log wrote "15:14:45 +0330" while nmap reported "11:46 UTC" for the
+same moment. The clocks were synchronised, but the machines displayed time in
+different zones.
+
+$ timedatectl | head -4        # LAB-WEB01, before
+               Local time: Mon 2026-08-03 15:23:50 +0330
+           Universal time: Mon 2026-08-03 11:53:50 UTC
+                 RTC time: Mon 2026-08-03 11:53:50
+                Time zone: Asia/Tehran (+0330, +0330)
+
+LAB-DC01 and LAB-SEC01 were already running in UTC; only LAB-WEB01 differed.
+
+Why this matters: during incident analysis the logs of several machines have to
+be correlated. Different time zones make the order of events ambiguous and every
+manual conversion is a chance to make a mistake.
+
+Remediation:
+
+$ sudo timedatectl set-timezone UTC
+$ timedatectl | head -4        # after
+               Local time: Mon 2026-08-03 11:55:09 UTC
+           Universal time: Mon 2026-08-03 11:55:09 UTC
+                 RTC time: Mon 2026-08-03 11:55:09
+                Time zone: UTC (UTC, +0000)
+
+Verification at the place where it actually matters - the log file itself.
+The first check after the change still showed the old zone:
+
+192.168.100.50 - - [03/Aug/2026:15:26:08 +0330] "HEAD / HTTP/1.1" 200 0 "-" "curl/8.14.1" "-"
+
+After reloading nginx, new worker processes read /etc/localtime again:
+
+192.168.100.50 - - [03/Aug/2026:11:57:17 +0000] "HEAD / HTTP/1.1" 200 0 "-" "curl/8.14.1" "-"
+
+Result: system time zone and log time zone are both UTC.
+        Checking timedatectl alone would have reported the finding as fixed
+        while the log file was still wrong.
+
+
+-------------------------------------------------------------------------------
+[10] SUMMARY OF ROUND 1
+-------------------------------------------------------------------------------
+  1. The network contains exactly the documented hosts - no unknown device.
+  2. Only ports 22 and 80 are open, confirmed across all 65535 ports.
+  3. Blocked ports appear as "filtered", because firewalld rejects with an ICMP
+     error rather than a TCP reset.
+  4. ICMP rate limiting (1000 ms) explains the two different filtered states;
+     proven by a controlled experiment and by a second, independent measurement.
+  5. TTL 64 in the scan responses identifies the target as a Linux system.
+  6. Version disclosure was found, remediated and re-verified (before/after).
+  7. Inconsistent time zones were found and corrected - a defect that the
+     Phase 5 verification matrix could not have detected.
+  8. The scan is visible in the target's logs, which documents the detection
+     side as well as the prevention side.
+
+Still open for round 2: scan of LAB-DC01 (192.168.100.10), expected services
+53/88/135/389/445/464/636/3268/3269 and TTL 128 for Windows.
