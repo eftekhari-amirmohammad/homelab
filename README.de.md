@@ -117,7 +117,7 @@ Ausführliche Details und Entwurfsentscheidungen: [`docs/ip-plan/`](docs/ip-plan
 | 3 | [Active Directory](phases/03-active-directory/) | Active Directory, DNS, DHCP, OU-Struktur | ✅ Abgeschlossen |
 | 4 | [Windows-Client](phases/04-windows-client/) | Domänenbeitritt, Authentifizierungstests | ✅ Abgeschlossen |
 | 5 | [Linux-Server](phases/05-linux-server/) | SSH, nginx, firewalld, Berechtigungen | ✅ Abgeschlossen |
-| 6 | [Sicherheitstests](phases/06-security-testing/) | Netzwerk-Scans, Diensterkennung | ⬜ Geplant |
+| 6 | [Sicherheitstests](phases/06-security-testing/) | Netzwerk-Scans, Diensterkennung | ✅ Abgeschlossen |
 | 7 | [Dokumentation](phases/07-documentation/) | Fehlerbehebung, Lessons Learned | ⬜ Geplant |
 | 8 | [Datensicherung](phases/08-backup-recovery/) | Backup-Konzept und getestete Wiederherstellung | ⬜ Geplant |
 
