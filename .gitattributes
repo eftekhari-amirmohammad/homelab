@@ -1,0 +1,3 @@
+# Configuration artefacts are evidence, not source code.
+# They must not determine the language statistics of this repository.
+configs/** linguist-documentation
