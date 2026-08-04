@@ -1,0 +1,258 @@
+===============================================================================
+Phase 6 - Security Testing: raw scan results, round 2 (domain controller)
+Project : homelab (github.com/eftekhari-amirmohammad/homelab)
+Date    : 2026-08-04
+Scanner : LAB-SEC01  192.168.100.50  Parrot Security 7.2  nmap 7.95
+Target  : LAB-DC01   192.168.100.10  Windows Server 2019, AD DS / DNS / DHCP
+Scope   : authorised scan inside an isolated lab network (192.168.100.0/24)
+Note    : LAB-WEB01 was powered off during this round (memory limit of the host,
+          maximum two virtual machines at a time).
+===============================================================================
+
+
+-------------------------------------------------------------------------------
+[1] BASELINE CHECK FROM THE HOST - BEFORE THE SCANNER WAS STARTED
+-------------------------------------------------------------------------------
+$ ping -c 3 192.168.100.10
+64 bytes from 192.168.100.10: icmp_seq=1 ttl=128 time=0.205 ms
+64 bytes from 192.168.100.10: icmp_seq=2 ttl=128 time=0.175 ms
+64 bytes from 192.168.100.10: icmp_seq=3 ttl=128 time=0.167 ms
+3 packets transmitted, 3 received, 0% packet loss
+
+Findings:
+  - TTL 128 identifies the host as a Windows system. Linux answers with TTL 64
+    (see LAB-WEB01 in round 1). The operating system family is therefore visible
+    before any scanner is used.
+  - Unlike LAB-WEB01, the domain controller answers ICMP echo requests. In a
+    domain this is usually intended: monitoring and diagnostic tools depend on it.
+
+
+-------------------------------------------------------------------------------
+[2] HOST DISCOVERY
+-------------------------------------------------------------------------------
+$ sudo nmap -sn 192.168.100.0/24
+
+192.168.100.1                                    MAC 52:54:00:CE:32:3A
+LAB-DC01.corp.homelab.internal (192.168.100.10)  MAC 52:54:00:FF:0E:62
+192.168.100.50                                   (scanner itself)
+
+Nmap done: 256 IP addresses (3 hosts up) scanned in 1.98 seconds
+
+Findings:
+  - The live hosts match the documented IP plan. 192.168.100.20 is absent
+    because LAB-WEB01 was powered off - a scan is a snapshot, not an inventory.
+  - Reverse DNS resolved the full name LAB-DC01.corp.homelab.internal. In round 1
+    no name was resolved, because the DNS server itself was switched off.
+    The PTR records created in phase 5 disclose the internal naming scheme and
+    the domain name to an unauthenticated client. This is an accepted trade-off:
+    reverse lookup is operationally required for diagnostics and log analysis.
+  - Scan duration dropped from 27.92 s (round 1) to 1.98 s. The difference is not
+    the network but DNS: in round 1 every reverse lookup had to time out because
+    the DNS server was unreachable. Execution time can itself be evidence of a
+    broken service.
+
+
+-------------------------------------------------------------------------------
+[3] TOP-1000 TCP SYN SCAN
+-------------------------------------------------------------------------------
+$ sudo nmap -sS 192.168.100.10
+
+Not shown: 988 filtered tcp ports (no-response)
+PORT     STATE SERVICE
+53/tcp   open  domain
+88/tcp   open  kerberos-sec
+135/tcp  open  msrpc
+139/tcp  open  netbios-ssn
+389/tcp  open  ldap
+445/tcp  open  microsoft-ds
+464/tcp  open  kpasswd5
+593/tcp  open  http-rpc-epmap
+636/tcp  open  ldapssl
+3268/tcp open  globalcatLDAP
+3269/tcp open  globalcatLDAPssl
+5985/tcp open  wsman
+
+Nmap done: 1 IP address (1 host up) scanned in 4.54 seconds
+
+Justification of every open port:
+  53    DNS               - name resolution for the whole domain
+  88    Kerberos          - authentication
+  135   RPC endpoint mapper - basis of Windows RPC communication
+  139   NetBIOS session   - legacy name service, installed with the role
+  389   LDAP              - directory queries
+  445   SMB               - SYSVOL and NETLOGON shares, group policy delivery
+  464   kpasswd           - password changes
+  593   RPC over HTTP     - installed together with the domain role
+  636   LDAPS             - LDAP over TLS
+  3268  Global Catalog    - forest-wide search
+  3269  Global Catalog SSL - the same over TLS
+  5985  WinRM             - remote management and remote command execution
+
+Comparison with LAB-WEB01 (round 1): 2 open ports versus 12.
+The attack surface follows the role of the system, not the effort of hardening.
+A domain controller cannot reduce its port list arbitrarily; it is protected by
+controlling who can reach it - that is, by network segmentation (see ADR-006).
+
+Positive finding: port 3389 (RDP) is not open. Remote Desktop was never enabled,
+even though the machine was administered through the graphical console.
+
+Firewall behaviour: all closed ports appear as "filtered (no-response)" and not
+a single ICMP error was returned. Windows Firewall drops silently, whereas
+firewalld on LAB-WEB01 rejects with an ICMP administratively-prohibited message.
+Both appear as "filtered" in nmap, but for different reasons:
+
+  REJECT with ICMP error  -> filtered, slow, reveals that a firewall is present
+  REJECT with TCP reset   -> closed
+  DROP without any answer -> filtered, fast, reveals nothing
+
+The behaviour of a firewall cannot be derived from the operating system; it has
+to be measured.
+
+
+-------------------------------------------------------------------------------
+[4] SERVICE VERSION DETECTION
+-------------------------------------------------------------------------------
+$ sudo nmap -sV -p 53,88,135,389,445,3268,5985 192.168.100.10
+
+PORT     STATE SERVICE       VERSION
+53/tcp   open  domain        Simple DNS Plus
+88/tcp   open  kerberos-sec  Microsoft Windows Kerberos (server time: 2026-08-04 15:42:05Z)
+135/tcp  open  msrpc         Microsoft Windows RPC
+389/tcp  open  ldap          Microsoft Windows Active Directory LDAP (Domain: corp.homelab.internal0., Site: Default-First-Site-Name)
+445/tcp  open  microsoft-ds?
+3268/tcp open  ldap          Microsoft Windows Active Directory LDAP (Domain: corp.homelab.internal0., Site: Default-First-Site-Name)
+5985/tcp open  http          Microsoft HTTPAPI httpd 2.0 (SSDP/UPnP)
+Service Info: Host: LAB-DC01; OS: Windows; CPE: cpe:/o:microsoft:windows
+
+Findings:
+
+  a) Information disclosure that cannot be switched off.
+     Without any authentication the scanner learned the domain name, the Active
+     Directory site name, the host name, the operating system family and the
+     machine-readable CPE identifier used by automated CVE matching tools.
+     On LAB-WEB01 the equivalent disclosure was fixed with one directive
+     (server_tokens off). Here it cannot be: LDAP has to name the domain it
+     serves, otherwise no client could bind to it. What the protocol requires
+     cannot be disabled - only restricted by network segmentation.
+
+  b) Kerberos discloses the server clock: "server time: 2026-08-04 15:42:05Z".
+     Kerberos tickets have a limited lifetime and a clock skew of more than five
+     minutes breaks authentication, so the service must publish its time. The
+     "Z" also confirms that the domain controller runs in UTC.
+
+  c) The value "Simple DNS Plus" on port 53 is WRONG.
+     The DNS service on this host is the Windows DNS Server role, installed in
+     phase 3 of this project. Version detection compares service responses against
+     a signature database and returns the closest match, which can be the wrong
+     product. The claim was checked against the project's own documentation and
+     the documentation is correct. A security report that copies tool output
+     without verification is not trustworthy.
+
+  d) The domain name is printed as "corp.homelab.internal0." - the trailing "0."
+     is a display artefact of nmap, not part of the real name. Recorded here so
+     that the raw output can be compared with the documentation without confusion.
+
+  e) Port 445 returned "microsoft-ds?". The question mark means nmap could not
+     confirm the service. Modern SMB does not volunteer the operating system
+     build - a positive finding.
+
+
+-------------------------------------------------------------------------------
+[5] SMB SECURITY TEST
+-------------------------------------------------------------------------------
+$ sudo nmap -p 445 --script smb2-security-mode,smb-os-discovery 192.168.100.10
+
+Host script results:
+| smb2-security-mode:
+|   3:1:1:
+|_    Message signing enabled and required
+
+Nmap done: 1 IP address (1 host up) scanned in 0.17 seconds
+
+Findings:
+  - SMB message signing is enabled AND required. SMB relay attacks, one of the
+    most common privilege-escalation paths in real networks, do not work against
+    this host.
+  - The dialect 3:1:1 is SMB 3.1.1, the current version, which includes
+    pre-authentication integrity checking and encryption support.
+  - smb-os-discovery returned nothing. That script depends on SMBv1, so the
+    absence of output is the actual result: SMBv1 - the protocol WannaCry spread
+    through - is not available. The claim is stated positively in the verification
+    matrix, because the missing answer is what matters.
+  - Honest note: these three properties are secure defaults of Windows Server
+    2019 and not the result of work done in this project. The contribution of the
+    audit is the proof that they are actually active.
+
+
+-------------------------------------------------------------------------------
+[6] FULL TCP PORT SCAN (all 65535 ports)
+-------------------------------------------------------------------------------
+$ sudo nmap -sS -p- -T4 --max-retries 1 192.168.100.10
+
+Not shown: 65514 filtered tcp ports (no-response)
+PORT      STATE SERVICE
+53/tcp    open  domain
+88/tcp    open  kerberos-sec
+135/tcp   open  msrpc
+139/tcp   open  netbios-ssn
+389/tcp   open  ldap
+445/tcp   open  microsoft-ds
+464/tcp   open  kpasswd5
+593/tcp   open  http-rpc-epmap
+636/tcp   open  ldapssl
+3268/tcp  open  globalcatLDAP
+3269/tcp  open  globalcatLDAPssl
+5985/tcp  open  wsman
+9389/tcp  open  adws
+49668/tcp open  unknown
+49669/tcp open  unknown
+49670/tcp open  unknown
+49672/tcp open  unknown
+49679/tcp open  unknown
+49680/tcp open  unknown
+49686/tcp open  unknown
+49696/tcp open  unknown
+
+Nmap done: 1 IP address (1 host up) scanned in 88.62 seconds
+
+Findings:
+  - 21 open ports in total. The default scan of the 1000 most common ports found
+    only 12, so it would have missed 43 percent of this server's attack surface.
+    On LAB-WEB01 the full scan found nothing new; here it found nine additional
+    ports. The value of a complete scan cannot be judged from a single host.
+  - Port 9389 is Active Directory Web Services.
+  - The eight ports between 49668 and 49696 are dynamic RPC endpoints. Windows
+    assigns them at boot time from the range 49152-65535, so THE NUMBERS CHANGE
+    AFTER EVERY RESTART. The correct statement is therefore "eight dynamic RPC
+    ports in the range 49152-65535", not a fixed list.
+  - Consequence for firewall design: a strict per-port rule set for a domain
+    controller is not possible unless the RPC range is deliberately restricted in
+    Windows. This is a further argument for network segmentation (ADR-006).
+  - Duration 88.62 s versus 135.50 s for LAB-WEB01. The Linux host was slower to
+    scan because its ICMP rate limiting delayed every rejection by one second.
+    Choosing DROP instead of REJECT makes a host quieter but speeds the attacker
+    up; choosing REJECT gives information away but costs the attacker time.
+  - The scan method was identical to round 1, so the two results are comparable.
+
+
+-------------------------------------------------------------------------------
+[7] SUMMARY OF ROUND 2
+-------------------------------------------------------------------------------
+  1. TTL 128 identifies Windows before any port is scanned; TTL 64 identified
+     Linux in round 1.
+  2. Reverse DNS discloses host name, naming scheme and domain name.
+  3. 21 open ports, every one of them justified by the domain controller role.
+  4. RDP is not exposed; SMB signing is required; SMBv1 is unavailable.
+  5. Domain name, AD site name and server clock are disclosed without
+     authentication and cannot be switched off - only restricted.
+  6. nmap misidentified the DNS product; verification against the project's own
+     documentation corrected the finding.
+  7. Eight of the open ports have no fixed number and change at every reboot.
+  8. Windows Firewall drops silently while firewalld rejects with an ICMP error -
+     two different behaviours documented side by side in one network.
+
+Open item, deliberately not done in this round: the target-side evidence on
+LAB-DC01 (Windows security event log and firewall logging) was not examined.
+On LAB-WEB01 the nginx access log proved that the scan was visible to the
+defender; the equivalent proof for the domain controller is still missing and is
+listed under known limitations rather than claimed.
