@@ -255,3 +255,62 @@ resolver, and the failure is fixed in exactly one place for all guests. In retur
 now requires the two public resolvers to be reachable, and external DNS traffic leaves the
 host unencrypted. In a production environment this decision would be made differently,
 because an internal resolver is normally mandatory for policy and logging reasons.
+---
+
+## ADR-012
+
+### All systems in the lab log and operate in UTC.
+
+**Context**
+
+The domain controller and therefore the entire Active Directory run in UTC, because
+Kerberos depends on synchronised time and the domain was built that way in phase 3.
+The Linux server `LAB-WEB01`, however, had been installed with the local timezone
+`Asia/Tehran` (`+0330`). This went unnoticed until phase 6, when the security scan
+appeared in the nginx access log with timestamps that were three and a half hours
+apart from the domain controller's own records of the same event.
+
+The practical consequence is not a broken service. Kerberos was never affected,
+because a timezone is only a presentation of a point in time and not the point in
+time itself. The consequence concerns the analysis: correlating an event across two
+machines required mental arithmetic on every single line, and a chain of evidence
+that requires arithmetic is a weak chain of evidence. In an incident, that
+arithmetic is done under time pressure and by someone who did not build the lab.
+
+**Decision**
+
+All systems in the lab operate and log in UTC. The local timezone is used only in
+user-facing interfaces, never in a log file. The timezone is normalised at the
+source - on each machine - and not converted at the point of analysis.
+
+**Alternatives considered**
+
+- *Local timezone (`Asia/Tehran`) everywhere:* consistent as well, and more
+  convenient for the operator, but it isolates the lab from every external
+  reference. Public sources for correlation - certificate timestamps, CVE
+  publication dates, cloud provider logs, the output of other people's tools - are
+  in UTC. The mismatch would only move to the boundary of the lab instead of
+  disappearing.
+- *Leaving each system as installed and converting during analysis:* rejected. It
+  moves recurring manual effort into exactly the situation in which manual effort is
+  most likely to fail.
+- *Storing UTC but displaying local time in the log:* not available with the tools
+  used here. nginx and journald write the timezone of the process that produced the
+  entry.
+
+**Consequences**
+
+- Timestamps from any two machines in the lab can be compared directly, without
+  conversion and without knowing which machine produced them.
+- The change is a system-level change and does not reach processes that are already
+  running. `timedatectl` reported UTC immediately, while nginx kept writing `+0330`
+  until the service was reloaded and new worker processes were created. Every
+  timezone change therefore requires a reload of the services whose logs matter, and
+  verification has to happen in the log file rather than in the command output.
+- Log entries written before this decision remain in `+0330`. The screenshot of the
+  scanner footprint in phase 6 is affected and carries an explicit note in its
+  figure caption; a correct piece of evidence in the wrong context would otherwise
+  become a false claim.
+- Clock skew and timezone mismatch remain two separate problems. Skew is handled by
+  NTP against the domain controller and destroys services; a timezone mismatch
+  destroys the chain of evidence. This decision addresses only the second.
